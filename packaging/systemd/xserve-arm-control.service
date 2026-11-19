@@ -1,0 +1,17 @@
+[Unit]
+Description=Xserve ARM Monitor Dashboard
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=arm
+Group=arm
+EnvironmentFile=-/etc/default/xserve-arm-control
+WorkingDirectory=/usr/lib/xserve-arm-control
+ExecStart=/usr/bin/python3 /usr/lib/xserve-arm-control/app.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
