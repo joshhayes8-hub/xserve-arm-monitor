@@ -1,0 +1,519 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Xserve ARM Monitor</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --background: #10151d;
+            --panel: #1a222e;
+            --border: #2b3746;
+            --text: #edf2f7;
+            --muted: #93a1b2;
+            --accent: #4da3ff;
+            --green: #42c987;
+            --red: #ff6565;
+            --yellow: #f3bd4e;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: var(--background);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 22px 32px;
+            border-bottom: 1px solid var(--border);
+            background: #151c26;
+        }
+
+        h1 { font-size: 21px; margin: 0; }
+        .subtitle { color: var(--muted); font-size: 13px; margin-top: 5px; }
+
+        main {
+            max-width: 1250px;
+            margin: 30px auto;
+            padding: 0 24px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 22px;
+        }
+
+        .panel h2 {
+            margin: 0 0 18px;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .metric {
+            font-size: 25px;
+            font-weight: 650;
+            margin-top: 10px;
+        }
+
+        .muted { color: var(--muted); font-size: 13px; }
+        .green { color: var(--green); }
+        .red { color: var(--red); }
+        .yellow { color: var(--yellow); }
+
+        .jobs {
+            margin-top: 20px;
+            grid-column: 1 / -1;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 13px 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th { color: var(--muted); font-weight: 500; }
+        tr:last-child td { border-bottom: none; }
+
+        .status {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            background: #303b49;
+        }
+
+        .status.fail { color: var(--red); background: #492b32; }
+        .status.success { color: var(--green); background: #203d35; }
+        .status.active { color: var(--yellow); background: #443a25; }
+
+        footer {
+            color: var(--muted);
+            font-size: 12px;
+            text-align: center;
+            padding: 25px;
+        }
+
+        @media (max-width: 750px) {
+            header { padding: 18px; }
+            main { padding: 0 14px; }
+            .grid { grid-template-columns: 1fr; }
+            .jobs { overflow-x: auto; }
+            table { min-width: 600px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <h1>Xserve ARM Monitor</h1>
+            <div class="subtitle">Automatic Ripping Machine · Server dashboard</div>
+        </div>
+        <div class="green">● Backend connected</div>
+    </header>
+
+    <main>
+        <div class="grid">
+            <section class="panel">
+                <h2>ARM Service</h2>
+                <div class="metric green" id="service">Checking...</div>
+                <div class="muted">ARM web interface</div>
+            </section>
+
+            <section class="panel">
+                <h2>Ripping Activity</h2>
+                <div class="metric" id="activity">Checking...</div>
+                <div class="muted">Latest job status</div>
+            </section>
+
+            <section class="panel">
+                <h2>Recent Job</h2>
+                <div class="metric" id="latest">—</div>
+                <div class="muted">Most recently recorded disc</div>
+            </section>
+
+
+<section style="grid-column:1 / -1;width:100%;box-sizing:border-box;background:#1b2430;border:1px solid #304052;border-radius:20px;padding:28px;margin:0 0 40px;">
+    <h2>Current Activity</h2>
+    <div id="activity-status" style="font-size:28px;font-weight:700;margin:20px 0;">Loading...</div>
+    <div id="activity-stage" style="color:#9aa9bb;margin-bottom:16px;">Checking ARM activity</div>
+    <div id="activity-file" style="color:#ffffff;font-size:16px;font-weight:600;margin-bottom:16px;"></div>
+
+    <div style="background:#303c4c;border-radius:8px;height:12px;overflow:hidden;">
+        <div id="activity-progress-bar" style="background:#42c98b;width:0%;height:100%;transition:width 0.4s;"></div>
+    </div>
+
+    <div id="activity-progress-text" style="color:#9aa9bb;margin-top:10px;">No progress data</div>
+    <div id="activity-details" style="color:#9aa9bb;margin-top:14px;"></div>
+</section>
+<section class="panel" style="grid-column:1 / -1;">
+    <h2>CPU Monitoring</h2>
+
+    <div style="margin-bottom:24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
+            <span class="muted">Overall Server CPU Usage</span>
+            <strong id="cpu-overall">--%</strong>
+        </div>
+        <div style="background:#303c4c;border-radius:8px;height:12px;overflow:hidden;">
+            <div id="cpu-overall-bar" style="background:#42c987;width:0%;height:100%;transition:width 0.4s;"></div>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;">
+
+        <div style="background:#151d28;border:1px solid #304052;border-radius:12px;padding:20px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+                <h3 style="margin:0;">Xeon 1</h3>
+                <div><strong id="cpu-temp-0">--°C</strong><div class="muted">Average temperature</div></div>
+            </div>
+
+            <div class="muted" style="margin-bottom:8px;">PROCESSOR USAGE</div>
+            <div style="background:#303c4c;border-radius:8px;height:12px;overflow:hidden;">
+                <div id="cpu-package-0-bar" style="background:#42c987;width:0%;height:100%;"></div>
+            </div>
+            <div id="cpu-package-0-usage" style="text-align:right;font-size:13px;margin-top:5px;">--%</div>
+
+            <div class="muted" style="margin:20px 0 12px;">INDIVIDUAL CORES</div>
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;">
+
+                <div style="text-align:center;">
+                    <div id="cpu-core-0-value" class="muted">--%</div>
+                    <div style="height:90px;background:#303c4c;border-radius:6px;margin:8px 0;display:flex;align-items:flex-end;overflow:hidden;">
+                        <div id="cpu-core-0-bar" style="background:#42c987;width:100%;height:0%;"></div>
+                    </div>
+                    <div class="muted">Core 0</div>
+                </div>
+
+                <div style="text-align:center;">
+                    <div id="cpu-core-1-value" class="muted">--%</div>
+                    <div style="height:90px;background:#303c4c;border-radius:6px;margin:8px 0;display:flex;align-items:flex-end;overflow:hidden;">
+                        <div id="cpu-core-1-bar" style="background:#42c987;width:100%;height:0%;"></div>
+                    </div>
+                    <div class="muted">Core 1</div>
+                </div>
+
+                <div style="text-align:center;">
+                    <div id="cpu-core-2-value" class="muted">--%</div>
+                    <div style="height:90px;background:#303c4c;border-radius:6px;margin:8px 0;display:flex;align-items:flex-end;overflow:hidden;">
+                        <div id="cpu-core-2-bar" style="background:#42c987;width:100%;height:0%;"></div>
+                    </div>
+                    <div class="muted">Core 2</div>
+                </div>
+
+                <div style="text-align:center;">
+                    <div id="cpu-core-3-value" class="muted">--%</div>
+                    <div style="height:90px;background:#303c4c;border-radius:6px;margin:8px 0;display:flex;align-items:flex-end;overflow:hidden;">
+                        <div id="cpu-core-3-bar" style="background:#42c987;width:100%;height:0%;"></div>
+                    </div>
+                    <div class="muted">Core 3</div>
+                </div>
+
+            </div>
+        </div>
+
+        <div style="background:#151d28;border:1px solid #304052;border-radius:12px;padding:20px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+                <h3 style="margin:0;">Xeon 2</h3>
+                <div><strong id="cpu-temp-1">--°C</strong><div class="muted">Average temperature</div></div>
+            </div>
+
+            <div class="muted" style="margin-bottom:8px;">PROCESSOR USAGE</div>
+            <div style="background:#303c4c;border-radius:8px;height:12px;overflow:hidden;">
+                <div id="cpu-package-1-bar" style="background:#42c987;width:0%;height:100%;"></div>
+            </div>
+            <div id="cpu-package-1-usage" style="text-align:right;font-size:13px;margin-top:5px;">--%</div>
+
+            <div class="muted" style="margin:20px 0 12px;">INDIVIDUAL CORES</div>
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;">
+
+                <div style="text-align:center;">
+                    <div id="cpu-core-4-value" class="muted">--%</div>
+                    <div style="height:90px;background:#303c4c;border-radius:6px;margin:8px 0;display:flex;align-items:flex-end;overflow:hidden;">
+                        <div id="cpu-core-4-bar" style="background:#42c987;width:100%;height:0%;"></div>
+                    </div>
+                    <div class="muted">Core 0</div>
+                </div>
+
+                <div style="text-align:center;">
+                    <div id="cpu-core-5-value" class="muted">--%</div>
+                    <div style="height:90px;background:#303c4c;border-radius:6px;margin:8px 0;display:flex;align-items:flex-end;overflow:hidden;">
+                        <div id="cpu-core-5-bar" style="background:#42c987;width:100%;height:0%;"></div>
+                    </div>
+                    <div class="muted">Core 1</div>
+                </div>
+
+                <div style="text-align:center;">
+                    <div id="cpu-core-6-value" class="muted">--%</div>
+                    <div style="height:90px;background:#303c4c;border-radius:6px;margin:8px 0;display:flex;align-items:flex-end;overflow:hidden;">
+                        <div id="cpu-core-6-bar" style="background:#42c987;width:100%;height:0%;"></div>
+                    </div>
+                    <div class="muted">Core 2</div>
+                </div>
+
+                <div style="text-align:center;">
+                    <div id="cpu-core-7-value" class="muted">--%</div>
+                    <div style="height:90px;background:#303c4c;border-radius:6px;margin:8px 0;display:flex;align-items:flex-end;overflow:hidden;">
+                        <div id="cpu-core-7-bar" style="background:#42c987;width:100%;height:0%;"></div>
+                    </div>
+                    <div class="muted">Core 3</div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</section>
+            <section class="panel jobs">
+                <h2>Recent Jobs</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Job</th>
+                            <th>Title</th>
+                            <th>Status</th>
+                            <th>Started</th>
+                            <th>Finished</th>
+                            <th>Errors</th>
+                        </tr>
+                    </thead>
+                    <tbody id="jobs">
+                        <tr><td colspan="6">Loading jobs...</td></tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        Xserve ARM Monitor · Connected to your server
+    </footer>
+
+    <script>
+async function refreshCPU() {
+    try {
+        const response = await fetch('/api/cpu');
+        if (!response.ok) throw new Error('CPU API unavailable');
+
+        const data = await response.json();
+
+        if (data.overall !== null) {
+            document.getElementById('cpu-overall').textContent =
+                data.overall + '%';
+            document.getElementById('cpu-overall-bar').style.width =
+                data.overall + '%';
+        }
+
+        // Linux CPU order mapped to physical Xeon core order
+        const processors = [
+            { package: 0, cores: [0, 1, 4, 2], slots: [0, 1, 2, 3] },
+            { package: 1, cores: [5, 7, 3, 6], slots: [4, 5, 6, 7] }
+        ];
+
+        processors.forEach(processor => {
+            const readings = processor.cores
+                .map(cpu => data.cores['cpu' + cpu])
+                .filter(value => value !== null);
+
+            if (readings.length) {
+                const average = readings.reduce((a, b) => a + b, 0)
+                    / readings.length;
+
+                document.getElementById(
+                    `cpu-package-${processor.package}-usage`
+                ).textContent = average.toFixed(1) + '%';
+
+                document.getElementById(
+                    `cpu-package-${processor.package}-bar`
+                ).style.width = average + '%';
+            }
+
+            const temperature = data.temperatures[processor.package];
+
+            if (temperature !== undefined) {
+                document.getElementById(
+                    `cpu-temp-${processor.package}`
+                ).textContent = temperature.toFixed(1) + '°C';
+            }
+
+            processor.cores.forEach((cpu, index) => {
+                const slot = processor.slots[index];
+                const usage = data.cores['cpu' + cpu];
+
+                if (usage === null || usage === undefined) return;
+
+                document.getElementById(
+                    `cpu-core-${slot}-value`
+                ).textContent = usage.toFixed(1) + '%';
+
+                document.getElementById(
+                    `cpu-core-${slot}-bar`
+                ).style.height = usage + '%';
+            });
+        });
+
+    } catch (error) {
+        console.error('CPU monitoring error:', error);
+    }
+}
+        async function refreshDashboard() {
+            try {
+                const response = await fetch('/api/jobs');
+                if (!response.ok) throw new Error('API request failed');
+
+                const jobs = await response.json();
+                const table = document.getElementById('jobs');
+const serviceResponse = await fetch('/api/service');
+
+if (!serviceResponse.ok) {
+    throw new Error('Service request failed');
+}
+
+const serviceData = await serviceResponse.json();
+const serviceElement = document.getElementById('service');
+
+serviceElement.textContent =
+    serviceData.status === 'active' ? 'Active' : 'Inactive';
+
+serviceElement.className =
+    serviceData.status === 'active' ? 'metric green' : 'metric red';
+
+
+        const activityResponse = await fetch('/api/activity');
+        if (!activityResponse.ok) {
+            throw new Error('Activity request failed');
+        }
+
+        const activityData = await activityResponse.json();
+
+        const activityStatus = document.getElementById('activity-status');
+
+activityStatus.textContent = activityData.activity;
+
+if (activityData.activity === 'Failed') {
+    activityStatus.style.color = '#ff6262';
+} else if (['Completed', 'Ripping', 'Scanning disc'].includes(activityData.activity)) {
+    activityStatus.style.color = '#42c98b';
+} else if (activityData.activity === 'Transcoding') {
+    activityStatus.style.color = '#60a5fa';
+} else if (activityData.activity.includes('Waiting')) {
+    activityStatus.style.color = '#f5b942';
+} else {
+    activityStatus.style.color = '#e8eef7';
+}
+
+        document.getElementById('activity-stage').textContent =
+            activityData.current_file_number && activityData.total_files
+                ? `File ${activityData.current_file_number} of ${activityData.total_files}`
+                : activityData.stage || 'No processing stage available';
+        document.getElementById('activity-file').textContent =
+            activityData.current_file ? 'Current file: ' + activityData.current_file : '';
+
+        const progressBar = document.getElementById('activity-progress-bar');
+
+        if (activityData.active && activityData.progress !== null) {
+            progressBar.style.width = activityData.progress + '%';
+            document.getElementById('activity-progress-text').textContent =
+                activityData.progress + '% current operation progress';
+        } else {
+            progressBar.style.width = '0%';
+            document.getElementById('activity-progress-text').textContent =
+                activityData.active ? 'Waiting for progress data' :
+                'No live progress — job is not running';
+        }
+
+        let details = '';
+
+        if (activityData.current_title !== null) {
+            details += 'Title ' + activityData.current_title +
+                ' of ' + activityData.total_titles + ' · ';
+        }
+
+        if (activityData.fps !== null) {
+            details += activityData.fps + ' FPS · ';
+        }
+
+        if (activityData.eta) {
+            details += 'ETA: ' + activityData.eta + ' · ';
+        }
+
+        details += 'Job #' + activityData.job_id;
+
+        document.getElementById('activity-details').textContent = details;
+
+                if (!jobs.length) {
+                    table.innerHTML = '<tr><td colspan="6">No jobs recorded yet.</td></tr>';
+                    document.getElementById('activity').textContent = 'Idle';
+                    document.getElementById('latest').textContent = 'No jobs';
+                    return;
+                }
+
+                const latest = jobs[0];
+                document.getElementById('latest').textContent =
+                    latest.title || 'Unknown';
+
+                document.getElementById('activity').textContent =
+                    latest.status === 'running' ? 'Ripping' :
+                    latest.status === 'success' ? 'Completed' :
+                    latest.status === 'fail' ? 'Failed' : 'Idle';
+
+                table.innerHTML = jobs.map(job => {
+                    const status = (job.status || 'unknown').toLowerCase();
+                    const css = status === 'fail' ? 'fail' :
+                                status === 'success' ? 'success' :
+                                status === 'running' ? 'active' : '';
+
+                    return `
+                        <tr>
+                            <td>${job.job_id}</td>
+                            <td>${escapeHTML(job.title || 'Unknown')}</td>
+                            <td><span class="status ${css}">${escapeHTML(status)}</span></td>
+                            <td>${escapeHTML(job.start_time || '—')}</td>
+                            <td>${escapeHTML(job.stop_time || '—')}</td>
+                            <td>${escapeHTML(job.errors || '—')}</td>
+                        </tr>`;
+                }).join('');
+
+            } catch (error) {
+                document.getElementById('activity').textContent = 'Unavailable';
+                document.getElementById('jobs').innerHTML =
+                    '<tr><td colspan="6">Unable to load job information.</td></tr>';
+            }
+        }
+
+        function escapeHTML(value) {
+            return String(value).replace(/[&<>"']/g, char => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;',
+                '"': '&quot;', "'": '&#39;'
+            })[char]);
+        }
+
+        refreshDashboard();
+        setInterval(refreshDashboard, 5000);
+
+refreshCPU();
+setInterval(refreshCPU, 5000);
+    </script>
+</body>
+</html>
