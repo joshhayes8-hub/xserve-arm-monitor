@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Xserve ARM Monitor
+Comment=Monitor Automatic Ripping Machine
+Exec=/usr/bin/xserve-arm-control-launcher
+Icon=computer
+Terminal=false
+Categories=Utility;System;
