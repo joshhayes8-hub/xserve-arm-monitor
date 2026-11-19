@@ -1,0 +1,27 @@
+#!/bin/bash
+set -u
+CONFIG="/etc/default/xserve-arm-control"
+if [ -r "$CONFIG" ]; then
+    set -a
+    . "$CONFIG"
+    set +a
+fi
+API="${XARMC_API:-http://127.0.0.1:5000}"
+choice=$(kdialog --title "Xserve ARM Monitor" --menu "Which interface would you like to launch?" web "Web dashboard" desktop "Desktop application" both "Both applications") || exit 0
+start_web() {
+    if ! systemctl is-active --quiet xserve-arm-control; then
+        kdialog --error "The Xserve ARM Monitor service is not running. Check: systemctl status xserve-arm-control"
+        return 1
+    fi
+    xdg-open "$API" >/dev/null 2>&1 &
+}
+start_desktop() {
+    if ! pgrep -f '[/]usr/lib/xserve-arm-control/desktop/main.py' >/dev/null; then
+        nohup /usr/bin/python3 /usr/lib/xserve-arm-control/desktop/main.py >/tmp/xserve-arm-control-desktop.log 2>&1 </dev/null &
+    fi
+}
+case "$choice" in
+    web) start_web ;;
+    desktop) start_desktop ;;
+    both) start_web && start_desktop ;;
+esac
