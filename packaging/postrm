@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+if [ "$1" = remove ] || [ "$1" = purge ]; then
+    for shortcut in /home/*/Desktop/'Xserve ARM Monitor.desktop'; do
+        [ -f "$shortcut" ] && rm -f "$shortcut"
+    done
+fi
+systemctl daemon-reload
+exit 0
