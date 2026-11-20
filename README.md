@@ -2,7 +2,7 @@
 
 A lightweight web and native KDE desktop dashboard for monitoring [Automatic Ripping Machine (ARM)](https://github.com/automatic-ripping-machine/automatic-ripping-machine) on Debian-based systems.
 
-The dashboard shows ARM service state, current ripping/transcoding activity, recent jobs, CPU utilisation, and processor temperatures. The desktop client and web dashboard share the same local Flask API.
+The dashboard shows ARM service state, current ripping/transcoding activity, recent jobs, CPU utilisation, and processor temperatures. During transcoding, file position is based on ARM's per-file transcode log entries (for example, 7 of 9 files), rather than HandBrake's per-file task counter. The desktop client and web dashboard share the same local Flask API.
 
 > **Scope:** This project is a read-only monitoring interface. It does not install, modify, or control ARM, its ripping workers, MakeMKV, HandBrake, udev rules, or job scheduler.
 
@@ -60,7 +60,7 @@ The desktop client connects to `http://127.0.0.1:5000` by default. Set `XARMC_AP
 
 ## Debian packaging
 
-The current package is `xserve-arm-control` version 1.0.3 for Debian 13 amd64. The package build tree is intentionally not committed; packaging metadata and scripts are in `packaging/`. Recreate the package by assembling the files under the standard Debian package layout and building with `dpkg-deb --build --root-owner-group`.
+The current package is `xserve-arm-control` version 1.0.4 for Debian 13 amd64. The package build tree is intentionally not committed; packaging metadata and scripts are in `packaging/`. Recreate the package by assembling the files under the standard Debian package layout and building with `dpkg-deb --build --root-owner-group`.
 
 ## Security and privacy
 
