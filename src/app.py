@@ -143,35 +143,30 @@ def activity():
 
             if lines:
                 result["latest_log"] = lines[-1][-500:]
-            for line in reversed(lines):
+            # ARM logs each source file as it enters the transcode queue.
+            # HandBrake's own "task 1 of 1" is per-file progress, not the
+            # position within the disc's full set of episodes.
+            transcode_files = []
+            for line in lines:
                 match = re.search(
-                    r"""Transcoding file .+? to ['"](.+?)['"]""",
+                    r"""Transcoding file (.+?) to (.+?)\s*$""",
                     line
                 )
                 if match:
-                    result["current_file"] = Path(match.group(1)).name
-                    break
-            current_track = None
+                    source = match.group(1).strip().strip("'").strip('"')
+                    destination = match.group(2).strip().strip("'").strip('"')
+                    transcode_files.append((Path(source).name, Path(destination).name))
 
-            for line in lines:
                 match = re.search(
                     r"Processing track #(\d+) of (\d+)",
                     line
                 )
                 if match:
-                    current_track = int(match.group(1))
                     result["total_files"] = int(match.group(2))
 
-                match = re.search(
-                    r"""Ripping title \d+ to ['"](.+?)['"]""",
-                    line
-                )
-                if match and result["current_file"]:
-                    raw_filename = Path(match.group(1)).name
-                    expected_filename = Path(result["current_file"]).with_suffix(".mkv").name
-
-                    if raw_filename == expected_filename:
-                        result["current_file_number"] = current_track
+            if transcode_files:
+                result["current_file_number"] = len(transcode_files)
+                result["current_file"] = transcode_files[-1][0]
             for line in reversed(lines):
                 match = re.search(
                     r"Encoding: task (\d of \d), (\d{1,3}\.\d{2}) %.*?"
