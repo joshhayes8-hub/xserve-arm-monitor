@@ -1,0 +1,17 @@
+#!/bin/sh
+set -e
+if ! getent passwd arm >/dev/null; then
+    echo "Xserve ARM Monitor requires the standard ARM service account 'arm'." >&2
+    echo "Install Automatic Ripping Machine first, then install this package." >&2
+    exit 1
+fi
+systemctl daemon-reload
+systemctl enable --now xserve-arm-control.service
+for desktop_dir in /home/*/Desktop; do
+    [ -d "$desktop_dir" ] || continue
+    install -m 755 /usr/share/applications/xserve-arm-monitor.desktop "$desktop_dir/Xserve ARM Monitor.desktop"
+    owner=$(stat -c %U "$desktop_dir")
+    group=$(stat -c %G "$desktop_dir")
+    chown "$owner:$group" "$desktop_dir/Xserve ARM Monitor.desktop"
+done
+exit 0
