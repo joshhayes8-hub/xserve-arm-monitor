@@ -11,45 +11,45 @@ choice=$(kdialog --title "Xserve ARM Monitor" --menu "Choose an action:" \
     web "Open web dashboard" \
     desktop "Open desktop application" \
     both "Open both applications" \
-    stop_web "Stop web service" \
-    stop_desktop "Close desktop application" \
-    stop_both "Stop service and close desktop application") || exit 0
+    stop "Stop background service" \
+    start "Start background service") || exit 0
+
 start_web() {
     if ! systemctl is-active --quiet xserve-arm-control; then
-        kdialog --error "The Xserve ARM Monitor service is not running. Check: systemctl status xserve-arm-control"
+        kdialog --error "The Xserve ARM Monitor background service is not running. Choose Start background service first."
         return 1
     fi
     xdg-open "$API" >/dev/null 2>&1 &
 }
+
 start_desktop() {
     if ! pgrep -f '[/]usr/lib/xserve-arm-control/desktop/main.py' >/dev/null; then
         nohup /usr/bin/python3 /usr/lib/xserve-arm-control/desktop/main.py >/tmp/xserve-arm-control-desktop.log 2>&1 </dev/null &
     fi
 }
-stop_web() {
+
+stop_service() {
     if ! systemctl is-active --quiet xserve-arm-control; then
-        kdialog --msgbox "The Xserve ARM Monitor web service is already stopped."
+        kdialog --msgbox "The Xserve ARM Monitor background service is already stopped."
         return 0
     fi
-    if kdialog --warningyesno "Stop the Xserve ARM Monitor service? This also disconnects the desktop application from live monitoring."; then
+    if kdialog --warningyesno "Stop the Xserve ARM Monitor background service? The web dashboard and desktop application will lose live data."; then
         pkexec /usr/bin/systemctl stop xserve-arm-control.service
     fi
 }
-stop_desktop() {
-    if pgrep -f '[/]usr/lib/xserve-arm-control/desktop/main.py' >/dev/null; then
-        pkill -f '^/usr/bin/python3 /usr/lib/xserve-arm-control/desktop/main.py$' || true
-    else
-        kdialog --msgbox "The Xserve ARM Monitor desktop application is not running."
+
+start_service() {
+    if systemctl is-active --quiet xserve-arm-control; then
+        kdialog --msgbox "The Xserve ARM Monitor background service is already running."
+        return 0
     fi
+    pkexec /usr/bin/systemctl start xserve-arm-control.service
 }
+
 case "$choice" in
     web) start_web ;;
     desktop) start_desktop ;;
     both) start_web && start_desktop ;;
-    stop_web) stop_web ;;
-    stop_desktop) stop_desktop ;;
-    stop_both)
-        stop_desktop
-        stop_web
-        ;;
+    stop) stop_service ;;
+    start) start_service ;;
 esac
