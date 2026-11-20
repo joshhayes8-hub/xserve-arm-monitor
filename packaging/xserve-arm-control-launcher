@@ -7,7 +7,13 @@ if [ -r "$CONFIG" ]; then
     set +a
 fi
 API="${XARMC_API:-http://127.0.0.1:5000}"
-choice=$(kdialog --title "Xserve ARM Monitor" --menu "Which interface would you like to launch?" web "Web dashboard" desktop "Desktop application" both "Both applications") || exit 0
+choice=$(kdialog --title "Xserve ARM Monitor" --menu "Choose an action:" \
+    web "Open web dashboard" \
+    desktop "Open desktop application" \
+    both "Open both applications" \
+    stop_web "Stop web service" \
+    stop_desktop "Close desktop application" \
+    stop_both "Stop service and close desktop application") || exit 0
 start_web() {
     if ! systemctl is-active --quiet xserve-arm-control; then
         kdialog --error "The Xserve ARM Monitor service is not running. Check: systemctl status xserve-arm-control"
@@ -20,8 +26,30 @@ start_desktop() {
         nohup /usr/bin/python3 /usr/lib/xserve-arm-control/desktop/main.py >/tmp/xserve-arm-control-desktop.log 2>&1 </dev/null &
     fi
 }
+stop_web() {
+    if ! systemctl is-active --quiet xserve-arm-control; then
+        kdialog --msgbox "The Xserve ARM Monitor web service is already stopped."
+        return 0
+    fi
+    if kdialog --warningyesno "Stop the Xserve ARM Monitor service? This also disconnects the desktop application from live monitoring."; then
+        pkexec /usr/bin/systemctl stop xserve-arm-control.service
+    fi
+}
+stop_desktop() {
+    if pgrep -f '[/]usr/lib/xserve-arm-control/desktop/main.py' >/dev/null; then
+        pkill -f '^/usr/bin/python3 /usr/lib/xserve-arm-control/desktop/main.py$' || true
+    else
+        kdialog --msgbox "The Xserve ARM Monitor desktop application is not running."
+    fi
+}
 case "$choice" in
     web) start_web ;;
     desktop) start_desktop ;;
     both) start_web && start_desktop ;;
+    stop_web) stop_web ;;
+    stop_desktop) stop_desktop ;;
+    stop_both)
+        stop_desktop
+        stop_web
+        ;;
 esac
