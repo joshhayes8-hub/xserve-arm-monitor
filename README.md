@@ -20,6 +20,7 @@ The dashboard shows ARM service state, current ripping/transcoding activity, rec
 - ARM service account named `arm`
 - Python 3 and Flask for the web backend
 - PySide6 Qt Widgets, `kdialog`, and `xdg-utils` for KDE desktop launching
+- `pkexec` for the launcher’s privileged service-stop action
 - Access for the dashboard service account to the ARM database and log directory
 
 ## Configuration
@@ -36,6 +37,10 @@ XARMC_API=http://127.0.0.1:5000
 ```
 
 Adjust these values for the local ARM installation. The web backend reads the ARM database and logs; it does not write to them. Keep the dashboard port restricted to a trusted network.
+
+## Launcher
+
+The KDE launcher can open the web dashboard, the desktop application, or both. It also provides separate actions to stop the web service and close the desktop application, plus a combined stop action. Stopping the web service also disconnects the desktop client from live data.
 
 ## Development
 
@@ -55,7 +60,7 @@ The desktop client connects to `http://127.0.0.1:5000` by default. Set `XARMC_AP
 
 ## Debian packaging
 
-The original project was packaged as `xserve-arm-control` version 1.0.0 for Debian 13 amd64. The package build tree is intentionally not committed; packaging metadata and scripts are in `packaging/`. Recreate the package by assembling the files under the standard Debian package layout and building with `dpkg-deb --build --root-owner-group`.
+The current package is `xserve-arm-control` version 1.0.2 for Debian 13 amd64. The package build tree is intentionally not committed; packaging metadata and scripts are in `packaging/`. Recreate the package by assembling the files under the standard Debian package layout and building with `dpkg-deb --build --root-owner-group`.
 
 ## Security and privacy
 
